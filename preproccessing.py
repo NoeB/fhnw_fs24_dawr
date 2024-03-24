@@ -8,6 +8,8 @@ preprocceced_path = data_path + '/preprocessed'
 
 os.makedirs(preprocceced_path, exist_ok=True)
 
+data_path = './data'
+
 
 
 def load_data(path: str, filename: str = None) -> pd.DataFrame:
@@ -128,10 +130,13 @@ def get_all_comunen_numbers(filename: str) -> set:
     return set(df['BFS-Gde Nummer'])
 
 
-
 possible_year_columns= ['Ausgangsjahr', 'INDIKATOR_JAHR']
-possible_bfs_columns = ['BFS_NR', 'Gemeinde_BFS_Nr']
+possible_bfs_columns = ['BFS_NR', 'Gemeinde_BFS_Nr', 'BFS-Gde Nummer']
 possible_bfs_numbers = get_all_comunen_numbers('gemeinde.csv')
+
+
+
+
 
 
 # Filter common invalid rows out 
@@ -146,10 +151,44 @@ einbrueche_df = load_data(preprocceced_path + '/Einbrueche.csv')
 einbrueche_df = einbrueche_df[einbrueche_df['Tatbestand'] == 'Einbrüche insgesamt']
 einbrueche_df = einbrueche_df[einbrueche_df['Gemeinde_BFS_Nr'].isin(possible_bfs_numbers)]
 einbrueche_df = einbrueche_df.groupby('Gemeinde_BFS_Nr').agg({'Straftaten_total': 'sum', 'Straftaten_vollendet': 'sum', 'Straftaten_versucht': 'sum', 'Einwohner': 'sum', 'Häufigkeitszahl': 'mean'}).reset_index()
+einbrueche_df.rename(columns={'Gemeinde_BFS_Nr': 'BFS_NR'}, inplace=True)   
+
 einbrueche_df.to_csv(preprocceced_path + '/Einbrueche.csv', index=False)
+
+
+
+
+
+## Copy wiki data/raw/wikipedia/wiki_pageviews.csv to preprocessed
+wiki_pageviews_df = load_data(data_path + '/raw/wikipedia', 'wiki_pageviews.csv')
+wiki_pageviews_df.to_csv(preprocceced_path + '/wiki_pageviews.csv', index=False)
+
+
+
+
+# Load the second sheet of abstimmung.xls 
+abstimmung_df = pd.read_excel(data_path + '/raw/kanton/abstimmung.xls', sheet_name=0,header=[7])
+## Remove rows with out BFS
+abstimmung_df = abstimmung_df[abstimmung_df['BFS'].isin(possible_bfs_numbers)]
+## Only keep BFS, Gebiet and Ungültige Stimmen
+abstimmung_df = abstimmung_df[['BFS', 'Gebiet', 'Ungültige']]
+# Combinde rows with the same BFS
+abstimmung_df = abstimmung_df.groupby('BFS').agg({'Gebiet': 'first', 'Ungültige': 'sum'}).reset_index()
+# Rename columns
+abstimmung_df.columns = ['BFS_NR', 'Gebiet', 'Ungültige']
+abstimmung_df.to_csv(preprocceced_path + '/abstimmung.csv', index=False)
+
+
+
+
 
 
 
 debug_print_files_with_wrong_rows(preprocceced_path, './data/raw/bund/gemeinde.csv')
 debug_list_invalid_comunes(preprocceced_path, './data/raw/bund/gemeinde.csv')
 debug_print_files_with_missing_communes(preprocceced_path, './data/raw/bund/gemeinde.csv')
+
+
+
+
+
