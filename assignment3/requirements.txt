@@ -1,0 +1,3 @@
+Scrapy==2.11.1
+pyspark==3.5.1
+python-dotenv==1.0.1
